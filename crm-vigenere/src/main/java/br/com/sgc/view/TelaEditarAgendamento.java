@@ -154,7 +154,7 @@ public class TelaEditarAgendamento extends JFrame {
         cbUsuarios.addItem(new ComboItem(1L, "dr.vigenere"));
     }
 
-    // A MÁGICA DA ATUALIZAÇÃO (PUT)
+    //(PUT)
     private void atualizarAgendamentoNaAPI() {
         try {
             ComboItem pacienteSelecionado = (ComboItem) cbPacientes.getSelectedItem();
@@ -184,7 +184,7 @@ public class TelaEditarAgendamento extends JFrame {
             java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/vendas/" + idAgendamentoSelecionado))
                     .header("Content-Type", "application/json")
-                    .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(jsonRequestBody)) // VERBO PUT AQUI!
+                    .PUT(java.net.http.HttpRequest.BodyPublishers.ofString(jsonRequestBody))
                     .build();
 
             java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());

@@ -11,7 +11,7 @@ import br.com.sgc.dto.ConsultaDTO;
 import br.com.sgc.repository.ConsultaRepository;
 
 @RestController
-@RequestMapping("/produtos") // Rota exigida no trabalho
+@RequestMapping("/produtos") // Consultas no Caso
 @CrossOrigin(origins = "*")
 public class ConsultaController {
 
@@ -21,7 +21,7 @@ public class ConsultaController {
         this.repository = repository;
     }
 
-    // GET /produtos - Exigido no trabalho
+    // GET /produtos
     @GetMapping
     public List<Consulta> listarTodos() {
         return repository.findAll();

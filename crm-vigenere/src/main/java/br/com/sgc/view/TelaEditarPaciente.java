@@ -17,7 +17,7 @@ public class TelaEditarPaciente extends JFrame {
     private JTextField txtCpf;
     private JTextField txtTelefone;
     private JTextField txtEmail;
-    private String idPacienteSelecionado; // Guarda o ID para sabermos quem atualizar
+    private String idPacienteSelecionado; 
 
     // O Construtor agora exige os dados do paciente para preencher a tela!
     public TelaEditarPaciente(String id, String nome, String cpf, String telefone, String email) {

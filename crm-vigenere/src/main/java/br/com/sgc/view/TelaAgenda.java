@@ -11,6 +11,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.JOptionPane;
 
 public class TelaAgenda extends JFrame {
 
@@ -21,7 +22,7 @@ public class TelaAgenda extends JFrame {
         setTitle("CRM Vigenere - Agenda Médica");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setResizable(false);
-        setSize(1144, 612); // Padrão exato das outras telas
+        setSize(1144, 612);
         setLocationRelativeTo(null);
 
         contentPane = new JPanel();
@@ -30,114 +31,55 @@ public class TelaAgenda extends JFrame {
         contentPane.setLayout(new BorderLayout(0, 20)); 
         setContentPane(contentPane);
 
-        // --- Cabeçalho ---
-        JPanel pnlHeader = new JPanel();
+        // Cabeçalho e botão de retorno
+        JPanel pnlHeader = new JPanel(new BorderLayout());
         pnlHeader.setBackground(EstilosGerais.AZUL_FUNDO);
-        pnlHeader.setLayout(new BorderLayout());
 
         JLabel lblTitulo = new JLabel("Agenda Médica");
         lblTitulo.setForeground(EstilosGerais.DOURADO);
         lblTitulo.setFont(EstilosGerais.FONTE_TITULO);
         pnlHeader.add(lblTitulo, BorderLayout.WEST);
 
-        JButton btnVoltar = new JButton("⬅ Voltar ao Menu");
-        btnVoltar.setBackground(EstilosGerais.AZUL_BOTAO);
-        btnVoltar.setForeground(EstilosGerais.TEXTO_BRANCO);
-        btnVoltar.setFont(EstilosGerais.FONTE_BOTAO);
-        btnVoltar.setFocusPainted(false);
-        btnVoltar.setBorderPainted(false);
-        btnVoltar.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        // Ação de voltar para o Dashboard
+        JButton btnVoltar = criarBotaoAcao("⬅ Voltar ao Menu", EstilosGerais.AZUL_BOTAO);
         btnVoltar.addActionListener(e -> {
-            TelaMenuPrincipal menu = new TelaMenuPrincipal();
-            menu.setVisible(true);
+            new TelaMenuPrincipal().setVisible(true);
             dispose();
         });
         pnlHeader.add(btnVoltar, BorderLayout.EAST);
         contentPane.add(pnlHeader, BorderLayout.NORTH);
 
-        // --- Área Central (Tabela de Consultas) ---
-        // Colunas pensadas para a rotina da clínica
-     // Colunas atualizadas para refletir o modelo Agendamento
+        // Tabela de listagem
         String[] colunas = {"ID", "Data/Hora", "Paciente", "Responsável", "Valor Total (R$)"};
         DefaultTableModel modeloTabela = new DefaultTableModel(null, colunas);
         tabelaAgenda = new JTable(modeloTabela);
-        
-        JScrollPane scrollPane = new JScrollPane(tabelaAgenda);
-        contentPane.add(scrollPane, BorderLayout.CENTER);
+        contentPane.add(new JScrollPane(tabelaAgenda), BorderLayout.CENTER);
 
-        // --- Rodapé (Botões de Ação) ---
-        JPanel pnlAcoes = new JPanel();
+        // Painel de ações (Rodapé)
+        JPanel pnlAcoes = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0)); 
         pnlAcoes.setBackground(EstilosGerais.AZUL_FUNDO);
-        pnlAcoes.setLayout(new FlowLayout(FlowLayout.RIGHT, 15, 0)); 
 
         JButton btnNovo = criarBotaoAcao(" Novo Agendamento", EstilosGerais.DOURADO);
-        
         btnNovo.addActionListener(e -> {
-            TelaCadastroAgendamento telaNova = new TelaCadastroAgendamento();
-            telaNova.setVisible(true);
+            new TelaCadastroAgendamento().setVisible(true);
             dispose();
         });
-        
         
         JButton btnEditar = criarBotaoAcao(" Editar", EstilosGerais.AZUL_BOTAO);
-        
-        
-     // Evento do botão Editar
-        btnEditar.addActionListener(e -> {
-            int linhaSelecionada = tabelaAgenda.getSelectedRow();
-            
-            if (linhaSelecionada == -1) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Por favor, selecione um agendamento na tabela para editar.", "Aviso", javax.swing.JOptionPane.WARNING_MESSAGE);
-                return;
-            }
+        btnEditar.addActionListener(e -> editarAgendamento());
 
-            // Pega os dados da linha para mandar para a tela de edição
-            String id = tabelaAgenda.getValueAt(linhaSelecionada, 0).toString();
-            String dataHora = tabelaAgenda.getValueAt(linhaSelecionada, 1).toString();
-            String valor = tabelaAgenda.getValueAt(linhaSelecionada, 4).toString();
-
-            TelaEditarAgendamento telaEdit = new TelaEditarAgendamento(id, dataHora, valor);
-            telaEdit.setVisible(true);
-            dispose();
-        });
         JButton btnCancelar = criarBotaoAcao(" Cancelar Consulta", new java.awt.Color(180, 50, 50));
-        
-     // Evento do botão Cancelar Consulta
-        btnCancelar.addActionListener(e -> {
-            int linhaSelecionada = tabelaAgenda.getSelectedRow();
-            
-            if (linhaSelecionada == -1) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Por favor, selecione uma consulta na tabela para cancelar.", "Aviso", javax.swing.JOptionPane.WARNING_MESSAGE);
-                return;
-            }
-
-            // Pega o ID (coluna 0) e o nome do Paciente (coluna 2) para a mensagem
-            String idAgendamento = tabelaAgenda.getValueAt(linhaSelecionada, 0).toString();
-            String paciente = tabelaAgenda.getValueAt(linhaSelecionada, 2).toString();
-
-            int confirmacao = javax.swing.JOptionPane.showConfirmDialog(
-                this, 
-                "Tem certeza que deseja cancelar a consulta de " + paciente + "?", 
-                "Confirmar Cancelamento", 
-                javax.swing.JOptionPane.YES_NO_OPTION
-            );
-
-            if (confirmacao == javax.swing.JOptionPane.YES_OPTION) {
-                cancelarAgendamentoNaAPI(idAgendamento, modeloTabela);
-            }
-        });
+        btnCancelar.addActionListener(e -> confirmarCancelamento(modeloTabela));
 
         pnlAcoes.add(btnNovo);
         pnlAcoes.add(btnEditar);
         pnlAcoes.add(btnCancelar);
         contentPane.add(pnlAcoes, BorderLayout.SOUTH);
 
-        // Preparando o terreno para a API no futuro
+        // Inicializa os dados da tabela
         carregarAgendaDaAPI(modeloTabela);
     }
 
+    // Configuração padronizada de botões
     private JButton criarBotaoAcao(String texto, java.awt.Color corFundo) {
         JButton btn = new JButton(texto);
         btn.setBackground(corFundo);
@@ -149,57 +91,75 @@ public class TelaAgenda extends JFrame {
         return btn;
     }
 
-    /**
-     * Método reservado para consumir o GET da API (Spring Boot) no futuro.
-     * Por enquanto, apenas adicionamos uma linha estática para você visualizar o design.
-     */
-    /**
-     * Faz a requisição HTTP GET para a rota /vendas e preenche a JTable
-     */
+    // Valida a seleção e redireciona para a tela de edição
+    private void editarAgendamento() {
+        int linha = tabelaAgenda.getSelectedRow();
+        if (linha == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione um agendamento para editar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String id = tabelaAgenda.getValueAt(linha, 0).toString();
+        String dataHora = tabelaAgenda.getValueAt(linha, 1).toString();
+        String valor = tabelaAgenda.getValueAt(linha, 4).toString();
+
+        new TelaEditarAgendamento(id, dataHora, valor).setVisible(true);
+        dispose();
+    }
+
+    // Valida a seleção e exibe modal de confirmação antes de deletar
+    private void confirmarCancelamento(DefaultTableModel modeloTabela) {
+        int linha = tabelaAgenda.getSelectedRow();
+        if (linha == -1) {
+            JOptionPane.showMessageDialog(this, "Selecione uma consulta para cancelar.", "Aviso", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        String id = tabelaAgenda.getValueAt(linha, 0).toString();
+        String paciente = tabelaAgenda.getValueAt(linha, 2).toString();
+
+        int confirmacao = JOptionPane.showConfirmDialog(this, 
+            "Deseja realmente cancelar a consulta de " + paciente + "?", 
+            "Confirmar Cancelamento", JOptionPane.YES_NO_OPTION);
+
+        if (confirmacao == JOptionPane.YES_OPTION) {
+            cancelarAgendamentoNaAPI(id, modeloTabela);
+        }
+    }
+
+    // Busca os agendamentos via GET e preenche a JTable
     private void carregarAgendaDaAPI(DefaultTableModel modeloTabela) {
         try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+            var client = java.net.http.HttpClient.newHttpClient();
+            var request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/vendas"))
                     .GET()
                     .build();
 
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                modeloTabela.setRowCount(0); // Limpa a tabela
+                modeloTabela.setRowCount(0);
 
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(response.body());
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                var rootNode = mapper.readTree(response.body());
 
-                for (com.fasterxml.jackson.databind.JsonNode node : rootNode) {
+                for (var node : rootNode) {
+                    // Limpeza do timestamp da data
+                    String dataFormatada = node.hasNonNull("data") ? node.get("data").asText().replace("T", " ").substring(0, 16) : "";
                     
-                    // Tratamento da Data (Vem como "2026-10-25T14:30:00" do LocalDateTime)
-                    String dataCrua = node.hasNonNull("data") ? node.get("data").asText() : "";
-                    String dataFormatada = dataCrua.replace("T", " ").substring(0, 16); // Fica "2026-10-25 14:30"
-
-                    // Extraindo o nome do Paciente (Objeto aninhado)
-                    String nomePaciente = "Não informado";
-                    if (node.hasNonNull("paciente") && node.get("paciente").hasNonNull("nome")) {
-                        nomePaciente = node.get("paciente").get("nome").asText();
-                    }
-
-                    // Extraindo o nome do Usuário Responsável (Objeto aninhado)
-                    String nomeUsuario = "Não informado";
-                    if (node.hasNonNull("usuarioResponsavel") && node.get("usuarioResponsavel").hasNonNull("username")) {
-                        nomeUsuario = node.get("usuarioResponsavel").get("username").asText();
-                    }
+                    // Extração segura de campos aninhados (Paciente e Usuário)
+                    String nomePaciente = (node.hasNonNull("paciente") && node.get("paciente").hasNonNull("nome")) 
+                                          ? node.get("paciente").get("nome").asText() : "Não informado";
                     
-                    // Extraindo o Valor Total
+                    String nomeUsuario = (node.hasNonNull("usuarioResponsavel") && node.get("usuarioResponsavel").hasNonNull("username")) 
+                                         ? node.get("usuarioResponsavel").get("username").asText() : "Não informado";
+                    
                     String valorTotal = node.hasNonNull("valorTotal") ? node.get("valorTotal").asText() : "0.00";
 
-                    // Adiciona a linha na interface
                     modeloTabela.addRow(new Object[]{
                         node.hasNonNull("id") ? node.get("id").asText() : "",
-                        dataFormatada,
-                        nomePaciente,
-                        nomeUsuario,
-                        "R$ " + valorTotal
+                        dataFormatada, nomePaciente, nomeUsuario, "R$ " + valorTotal
                     });
                 }
             }
@@ -208,27 +168,25 @@ public class TelaAgenda extends JFrame {
         }
     }
     
-    /**
-     * Envia um HTTP DELETE para a rota /vendas e atualiza a tabela
-     */
+    // Dispara a requisição DELETE para a API e atualiza a interface
     private void cancelarAgendamentoNaAPI(String id, DefaultTableModel modeloTabela) {
         try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+            var client = java.net.http.HttpClient.newHttpClient();
+            var request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/vendas/" + id))
                     .DELETE()
                     .build();
 
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 204 || response.statusCode() == 200) {
-                javax.swing.JOptionPane.showMessageDialog(this, "Consulta cancelada com sucesso!");
-                carregarAgendaDaAPI(modeloTabela); // Recarrega a tabela automaticamente
+                JOptionPane.showMessageDialog(this, "Consulta cancelada com sucesso!");
+                carregarAgendaDaAPI(modeloTabela);
             } else {
-                javax.swing.JOptionPane.showMessageDialog(this, "Erro ao cancelar. O agendamento possui vínculos financeiros?", "Erro", javax.swing.JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Erro ao cancelar. Existem vínculos financeiros?", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception ex) {
-            javax.swing.JOptionPane.showMessageDialog(this, "Erro de conexão com a API.", "Erro", javax.swing.JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erro de conexão com a API.", "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 }

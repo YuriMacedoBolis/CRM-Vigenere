@@ -33,14 +33,12 @@ public class TelaCadastroAgendamento extends JFrame {
         contentPane.setLayout(new BorderLayout(0, 30));
         setContentPane(contentPane);
 
-        // --- Cabeçalho ---
-        JLabel lblTitulo = new JLabel("Marcar Nova Consulta (Venda)");
+        JLabel lblTitulo = new JLabel("Marcar Nova Consulta");
         lblTitulo.setForeground(EstilosGerais.DOURADO);
         lblTitulo.setFont(EstilosGerais.FONTE_TITULO);
         lblTitulo.setHorizontalAlignment(JLabel.CENTER);
         contentPane.add(lblTitulo, BorderLayout.NORTH);
 
-        // --- Formulário ---
         JPanel pnlForm = new JPanel();
         pnlForm.setBackground(EstilosGerais.TEXTO_BRANCO);
         pnlForm.setLayout(null);
@@ -48,7 +46,7 @@ public class TelaCadastroAgendamento extends JFrame {
 
         int startX = 50, startY = 30, width = 400, height = 30, gap = 60;
 
-        // Coluna 1: Paciente e Médico
+        // Primeira coluna: Seleção de Paciente e Médico
         pnlForm.add(criarLabel("Selecione o Paciente:", startX, startY));
         cbPacientes = new JComboBox<>();
         cbPacientes.setBounds(startX, startY + 25, width, height);
@@ -61,7 +59,7 @@ public class TelaCadastroAgendamento extends JFrame {
         cbUsuarios.setBackground(EstilosGerais.TEXTO_BRANCO);
         pnlForm.add(cbUsuarios);
 
-        // Coluna 2: Data, Hora e Valor (Financeiro)
+        // Segunda coluna: Dados de tempo e valor
         int col2X = 500;
         
         pnlForm.add(criarLabel("Data (DD/MM/YYYY):", col2X, startY));
@@ -79,7 +77,6 @@ public class TelaCadastroAgendamento extends JFrame {
         txtValor.setBounds(col2X, startY + gap + 25, 280, height);
         pnlForm.add(txtValor);
 
-        // --- Rodapé ---
         JPanel pnlBotoes = new JPanel();
         pnlBotoes.setBackground(EstilosGerais.AZUL_FUNDO);
         
@@ -95,12 +92,9 @@ public class TelaCadastroAgendamento extends JFrame {
         pnlBotoes.add(btnSalvar);
         contentPane.add(pnlBotoes, BorderLayout.SOUTH);
 
-        // Carrega as listas suspensas ao abrir a tela
         carregarPacientesNoCombo();
         carregarUsuariosNoCombo();
     }
-
-    // --- MÉTODOS DE APOIO ---
 
     private JLabel criarLabel(String texto, int x, int y) {
         JLabel lbl = new JLabel(texto);
@@ -119,25 +113,24 @@ public class TelaCadastroAgendamento extends JFrame {
     }
 
     private void voltarParaAgenda() {
-        TelaAgenda tela = new TelaAgenda();
-        tela.setVisible(true);
+        new TelaAgenda().setVisible(true);
         dispose();
     }
 
-    // --- MÉTODOS DE INTEGRAÇÃO COM A API ---
-
+    // Carrega a lista de clientes da API para o JComboBox
     private void carregarPacientesNoCombo() {
         try {
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+            var client = java.net.http.HttpClient.newHttpClient();
+            var request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/clientes"))
                     .GET().build();
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            
+            var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 200) {
-                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-                com.fasterxml.jackson.databind.JsonNode rootNode = mapper.readTree(response.body());
-                for (com.fasterxml.jackson.databind.JsonNode node : rootNode) {
+                var mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                var rootNode = mapper.readTree(response.body());
+                for (var node : rootNode) {
                     cbPacientes.addItem(new ComboItem(node.get("id").asLong(), node.get("nome").asText()));
                 }
             }
@@ -147,37 +140,32 @@ public class TelaCadastroAgendamento extends JFrame {
     }
 
     private void carregarUsuariosNoCombo() {
-        // ID 1 é o padrão do seu banco para o dr.vigenere
         cbUsuarios.addItem(new ComboItem(1L, "dr.vigenere"));
     }
 
-    // O MOTOR BLINDADO QUE AVISA O QUE DEU ERRADO
+    // Processa os dados do formulário e envia o POST para a API
     private void salvarAgendamentoNaAPI() {
         try {
             ComboItem pacienteSelecionado = (ComboItem) cbPacientes.getSelectedItem();
             ComboItem usuarioSelecionado = (ComboItem) cbUsuarios.getSelectedItem();
 
-            if (pacienteSelecionado == null || txtData.getText().trim().isEmpty() || txtHora.getText().trim().isEmpty() || txtValor.getText().trim().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Preencha todos os campos, incluindo o Valor da Consulta!", "Aviso", JOptionPane.WARNING_MESSAGE);
+            if (pacienteSelecionado == null || txtData.getText().trim().isEmpty() || 
+                txtHora.getText().trim().isEmpty() || txtValor.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Preencha todos os campos obrigatórios.", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            // Tratamento da data
             String[] partesData = txtData.getText().trim().split("/");
             if(partesData.length != 3) {
-                JOptionPane.showMessageDialog(this, "Data inválida! Use DD/MM/YYYY.", "Aviso", JOptionPane.WARNING_MESSAGE);
+                JOptionPane.showMessageDialog(this, "Data inválida. Utilize o formato DD/MM/YYYY.", "Aviso", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             
             String dataAmericana = partesData[2] + "-" + partesData[1] + "-" + partesData[0];
             String dataHoraFinal = dataAmericana + "T" + txtHora.getText().trim() + ":00";
-            
-            // Tratamento do valor (troca vírgula por ponto)
             String valorFormatado = txtValor.getText().trim().replace(",", ".");
 
-         // Criamos um item/procedimento padrão chamado "Consulta Médica" para satisfazer a regra de negócio da API.
-            // O valor unitário do item recebe o mesmo valor total preenchido na tela.
-         // O segredo está aqui: o item agora passa um objeto "consulta" apontando para o ID 1 do seu catálogo
+            // Monta o JSON da requisição incluindo um serviço padrão (ID 1) para satisfazer a regra de negócio do backend
             String jsonRequestBody = String.format(
                 "{\"data\":\"%s\", " +
                 "\"paciente\":{\"id\":%d}, " +
@@ -187,32 +175,30 @@ public class TelaCadastroAgendamento extends JFrame {
                 dataHoraFinal, pacienteSelecionado.getId(), usuarioSelecionado.getId(), valorFormatado, valorFormatado
             );
 
-            // Rastreador no Console
-            System.out.println("JSON ENVIADO: " + jsonRequestBody);
+            System.out.println("Payload: " + jsonRequestBody);
 
-            java.net.http.HttpClient client = java.net.http.HttpClient.newHttpClient();
-            java.net.http.HttpRequest request = java.net.http.HttpRequest.newBuilder()
+            var client = java.net.http.HttpClient.newHttpClient();
+            var request = java.net.http.HttpRequest.newBuilder()
                     .uri(java.net.URI.create("http://localhost:8080/vendas"))
                     .header("Content-Type", "application/json")
                     .POST(java.net.http.HttpRequest.BodyPublishers.ofString(jsonRequestBody))
                     .build();
 
-            java.net.http.HttpResponse<String> response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            var response = client.send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() == 201) { 
                 JOptionPane.showMessageDialog(this, "Agendamento registrado com sucesso!");
                 voltarParaAgenda(); 
             } else {
-                // Rastreador do Erro Real
-                System.out.println("RESPOSTA DO SERVIDOR: " + response.body());
-                JOptionPane.showMessageDialog(this, "Erro do Servidor (Código " + response.statusCode() + ")\n\nVerifique o console do Eclipse para detalhes.", "Falha no Cadastro", JOptionPane.ERROR_MESSAGE);
+                System.out.println("Erro na API: " + response.body());
+                JOptionPane.showMessageDialog(this, "Erro ao registrar o agendamento (Status " + response.statusCode() + ").\nConsulte o log para mais detalhes.", "Erro", JOptionPane.ERROR_MESSAGE);
             }
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "Erro de conexão: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Erro de comunicação com o servidor: " + ex.getMessage(), "Erro", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    // --- CLASSE AUXILIAR DO DROPDOWN ---
+    // Classe auxiliar para manipular chave/valor no JComboBox
     class ComboItem {
         private Long id;
         private String nome;
